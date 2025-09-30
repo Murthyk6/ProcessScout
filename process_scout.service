@@ -1,0 +1,14 @@
+[Unit]
+Description=ProcessScout Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/etc/process_scout
+ExecStart=/usr/local/bin/process_scout --config=/etc/process_scout/config.yaml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
