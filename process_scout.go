@@ -147,7 +147,7 @@ func getProcessName(p *process.Process, ptype string) string {
         if ptype == "java" || ptype == "python" {
                 cmdline, _ := p.CmdlineSlice()
                 for _, arg := range cmdline {
-                        if strings.HasPrefix(arg, "-Dubona.system.id=") {
+                        if strings.HasPrefix(arg, "-D.system.id=") {
                                 return strings.SplitN(arg, "=", 2)[1]
                         }
                 }
