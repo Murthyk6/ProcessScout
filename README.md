@@ -30,7 +30,7 @@ It exposes `/metrics` endpoint for Prometheus to scrape.
 ### 1. Build from source
 
 ```bash
-git clone https://github.com/Murthyk6/process-scout.git
+git clone https://github.com/Murthyk6/ProcessScout.git
 cd process-scout
 go build -o process_scout process_scout.go
 ```
