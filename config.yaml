@@ -1,0 +1,21 @@
+listen_address: ":9001"
+
+# Process types to include
+include_types:
+  - java
+  - python
+  - node
+  - docker
+  - system
+
+# Drop labels you don’t need (to reduce cardinality)
+labels:
+  cwd: true
+  process_name: true
+  type: true
+  user: false
+
+# Extra rules
+#rules:
+#  - type: "system"
+#    ignore_children: true
