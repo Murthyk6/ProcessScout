@@ -1,54 +1,62 @@
-# ProcessScout
+# 🔍 ProcessScout — Prometheus Process Exporter
 
-**ProcessScout** is a lightweight Prometheus exporter for monitoring process-level metrics (CPU, memory) of `java`, `python`, `node`, `docker`, and system processes.
+> A lightweight, production-ready Prometheus exporter written in Go that monitors CPU and memory usage of running processes — categorized by type (Java, Python, Node.js, Docker, system). Designed for SRE and DevOps teams needing per-process observability without heavyweight agents.
 
-It exposes `/metrics` endpoint for Prometheus to scrape.
-
----
-
-## Features
-
-* Collects **CPU and memory usage** per process.
-* Supports **dynamic labels**: process name, type, working directory, user.
-* Monitors multiple **process types** (`java`, `python`, `node`, `docker`, `system`).
-* Configurable via `config.yaml`.
-* Works as a **systemd service** or standalone executable.
+![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-Compatible-E6522C?style=flat-square&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-Ready-F46800?style=flat-square&logo=grafana&logoColor=white)
+![systemd](https://img.shields.io/badge/systemd-Service-0078D6?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
-## Files
+## Why ProcessScout?
 
-* **process_scout.go** – main Go program.
-* **config.yaml** – sample configuration.
-* **process_scout.service** – systemd service for auto-start.
-* **README.md** – instructions.
+Standard node exporters give you host-level CPU/memory. ProcessScout gives you **per-process, per-type** breakdowns — so you can answer: *"Which Java service is consuming 80% CPU?"* or *"Is my Python worker leaking memory?"*
 
 ---
 
-## Installation
+## Metrics Exposed
 
-### 1. Build from source
+| Metric | Description |
+|---|---|
+| `process_cpu_percent` | CPU usage % per process |
+| `process_memory_rss_bytes` | Resident memory (RSS) in bytes |
+| **Labels** | `process_name`, `type`, `cwd`, `user` |
+
+**Process types tracked:** `java`, `python`, `node`, `docker`, `system`
+
+---
+
+## Quick Start
+
+### Build from source
 
 ```bash
 git clone https://github.com/Murthyk6/ProcessScout.git
-cd process-scout
+cd ProcessScout
 go build -o process_scout process_scout.go
+./process_scout --config=config.yaml
 ```
 
-### 2. Place files in `/etc/process_scout` (optional)
+Metrics available at: `http://localhost:9001/metrics`
+
+### Deploy as systemd service
 
 ```bash
 sudo mkdir -p /etc/process_scout
-sudo cp process_scout /etc/process_scout/
-sudo cp config.yaml /etc/process_scout/
+sudo cp process_scout config.yaml /etc/process_scout/
 sudo cp process_scout.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now process_scout
 ```
 
-### 3. Configure `config.yaml`
+---
 
-Example:
+## Configuration
 
 ```yaml
+# config.yaml
 listen_address: ":9001"
 
 include_types:
@@ -62,51 +70,64 @@ labels:
   cwd: true
   process_name: true
   type: true
-  user: false
-```
-
-You can **enable/disable labels** to reduce Prometheus label cardinality.
-
----
-
-## Running
-
-### As standalone
-
-```bash
-./process_scout --config=config.yaml
-```
-
-Visit: [http://localhost:9001/metrics](http://localhost:9001/metrics) to see metrics.
-
-### As systemd service
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable process_scout
-sudo systemctl start process_scout
-sudo systemctl status process_scout
-```
-
-Logs:
-
-```bash
-journalctl -u process_scout -f
+  user: false          # disable to reduce cardinality
 ```
 
 ---
 
-## Prometheus Example Scrape Config
+## Prometheus Scrape Config
 
 ```yaml
 scrape_configs:
   - job_name: 'process_scout'
     static_configs:
-      - targets: ['localhost:9001']
+      - targets: ['<host>:9001']
+    scrape_interval: 15s
 ```
 
 ---
 
-## License
+## Grafana Dashboard
 
-MIT License – feel free to use and modify.
+Import the included dashboard or query directly:
+
+```promql
+# Top 5 CPU-consuming Java processes
+topk(5, process_cpu_percent{type="java"})
+
+# Memory usage per Docker container process
+process_memory_rss_bytes{type="docker"}
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────────────┐
+│   ProcessScout      │
+│  (Go binary)        │
+│                     │
+│  /proc scanning     │──► Prometheus /metrics endpoint
+│  config.yaml        │
+│  systemd service    │
+└─────────────────────┘
+         ▲
+   scrape every 15s
+         │
+   Prometheus ──► Grafana
+```
+
+---
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `process_scout.go` | Main exporter binary |
+| `config.yaml` | Configuration (ports, types, labels) |
+| `process_scout.service` | systemd unit file |
+
+---
+
+> Built from real-world SRE experience monitoring Java/Python microservices and Docker workloads in production. Used alongside the custom RTP/RTCP exporters at Ubona Technologies.
